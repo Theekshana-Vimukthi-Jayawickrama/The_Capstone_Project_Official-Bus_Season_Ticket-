@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 @SpringBootApplication
 @EnableScheduling
 public class E_TizApplication {
-
 	public static void main(String[] args) {
 		SpringApplication.run(E_TizApplication.class, args);
 	}
