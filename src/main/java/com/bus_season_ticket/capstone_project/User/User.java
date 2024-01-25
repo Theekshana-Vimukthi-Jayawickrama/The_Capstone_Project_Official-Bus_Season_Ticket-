@@ -1,6 +1,7 @@
 package com.bus_season_ticket.capstone_project.User;
 
 
+import com.bus_season_ticket.capstone_project.JourneyMaker.SelectDays;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -46,7 +47,10 @@ public class User implements UserDetails {
             inverseJoinColumns = {@JoinColumn(name = "fk_bus")})
     private UserBusDetails userBusDetails;
 
-
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinTable(name ="user_selectDay", joinColumns = {@JoinColumn(name = "fk_user")},
+            inverseJoinColumns = {@JoinColumn(name = "fk_selectDays")})
+    private SelectDays selectDays;
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "fk_school_id")

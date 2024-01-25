@@ -1,5 +1,6 @@
 package com.bus_season_ticket.capstone_project.auth;
 
+import com.bus_season_ticket.capstone_project.JourneyMaker.SelectDays;
 import com.bus_season_ticket.capstone_project.User.*;
 import com.bus_season_ticket.capstone_project.demo.EmailAlreadyExistsException;
 import com.bus_season_ticket.capstone_project.demo.UserService;
@@ -246,4 +247,97 @@ public class AuthenticationService {
             return false;
         }
     }
+
+    public AuthenticationResponse adultRegister(RegisterRequest request,RouteDaysSelectionRequest daysSelectionRequest,  RouteRequest routeRequest, MultipartFile userPhoto, MultipartFile NICFrontPhoto,MultipartFile NICBackPhoto) throws Exception {
+        String email = request.getEmail();
+        // Check if email already exists
+        if (!userService.isEmailUnique(email)) {
+            // Handle duplicate email error.
+            throw new EmailAlreadyExistsException("Email already exists");
+        }
+        SelectDays selectDays = SelectDays.builder()
+                .friday(daysSelectionRequest.isFriday())
+                .monday(daysSelectionRequest.isMonday())
+                .sunday(daysSelectionRequest.isSunday())
+                .saturday(daysSelectionRequest.isSaturday())
+                .tuesday(daysSelectionRequest.isTuesday())
+                .thursday(daysSelectionRequest.isThursday())
+                .wednesday(daysSelectionRequest.isWednesday())
+                .build();
+
+        String route = routeRequest.getRoute();
+        String nearestDeport =routeRequest.getNearestDeport();
+        Double charge = routeRequest.getCharge();
+        UserBusDetails stuBusDetails = stuBusRoute(route,charge,nearestDeport);
+
+        var user = User.builder()
+                .fullName(request.getFullname())
+                .intName(request.getIntName())
+                .email(email)
+                .selectDays(selectDays)
+                .userBusDetails(stuBusDetails)
+                .gender(request.getGender())
+                .dob(request.getDob())
+                .telephoneNumber(request.getTelephone())
+                .residence(request.getResidence())
+                .verified(false)
+                .address(request.getAddress())
+                .status("Pending".trim().toLowerCase())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(Role.ADULT)
+                .build();
+
+        NICAdultBack userBackNIC = userNICBackPhoto(NICBackPhoto);
+        if(userBackNIC==null){
+            throw new Exception("File could not be saved");
+        }else{
+            user.setAdultBackNIC(userBackNIC);
+        }
+        NICAdultFront userFrontNIC = userNICFrontPhoto(NICFrontPhoto);
+        if(userFrontNIC==null){
+            throw new Exception("File could not be saved");
+        }else{
+            user.setAdultFrontNIC(userFrontNIC);
+        }
+        //photo
+        UserPhotos userPhoto1 = userPhotoUpload(userPhoto);
+        if(userPhoto1==null){
+            throw new Exception("File could not be saved");
+        }else{
+            user.setUserPhoto(userPhoto1);
+        }
+
+        repository.save(user);
+        var jwtToken = JwtService.generateToken(user);
+        return AuthenticationResponse.builder()
+                .token(jwtToken)
+                .build();
+    }
+
+    public NICAdultBack userNICBackPhoto (MultipartFile file){
+
+        try {
+            NICAdultBack photo = new NICAdultBack();
+            photo.setPhotoNICBackName(file.getOriginalFilename());
+            photo.setNICType(file.getContentType());
+            photo.setData(file.getBytes());
+            return photo;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public NICAdultFront userNICFrontPhoto (MultipartFile file){
+
+        try {
+            NICAdultFront photo = new NICAdultFront();
+            photo.setUserPhotoName(file.getOriginalFilename());
+            photo.setPhotoType(file.getContentType());
+            photo.setData(file.getBytes());
+            return photo;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }

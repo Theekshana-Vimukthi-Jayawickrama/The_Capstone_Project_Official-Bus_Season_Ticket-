@@ -86,6 +86,36 @@ public class AuthenticationController {
         }
 
     }
+
+    @PostMapping("/adult/register" )
+    public ResponseEntity<AuthenticationResponse> adultRegister(
+            @RequestPart("routeDetails") String routeRequest1,
+            @RequestPart("request") String request1,
+            @RequestParam("uploadedNICFront") MultipartFile uploadedNICFront,
+            @RequestParam("uploadedNICBack") MultipartFile uploadedNICBack,
+            @RequestParam("photo") MultipartFile userPhoto,
+            @RequestPart("selectDays") String selectionDays,
+            HttpServletRequest req
+    ) throws JsonProcessingException {
+        System.out.println("Received Headers:");
+        req.getHeaderNames().asIterator()
+                .forEachRemaining(headerName ->
+                        System.out.println(headerName + ": " + req.getHeader(headerName))
+                );
+        RouteRequest routeRequest = mapperAdult.readValue(routeRequest1, RouteRequest.class);
+        RouteDaysSelectionRequest selectionDays1 = mapperAdult.readValue(selectionDays, RouteDaysSelectionRequest.class);
+        RegisterRequest request = mapperAdult.readValue(request1, RegisterRequest.class);
+
+        try {
+
+            AuthenticationResponse response = service.adultRegister(request,selectionDays1,routeRequest,userPhoto, uploadedNICFront,uploadedNICBack);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     @PostMapping("/authenticate")
     public ResponseEntity<AuthenticationResponse> authenticate(
             @RequestBody AuthenticationRequest request
