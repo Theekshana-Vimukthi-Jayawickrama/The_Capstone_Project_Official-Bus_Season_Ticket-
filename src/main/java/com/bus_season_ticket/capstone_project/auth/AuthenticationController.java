@@ -138,5 +138,54 @@ public class AuthenticationController {
             return ResponseEntity.ok(false);
         }
     }
+    @PostMapping("/sendOTP")
+    public ResponseEntity<String> sendOTP(
+            @RequestParam("email") String email
+    ) {
+        try {
+            service.sendOTP(email);
+            return ResponseEntity.ok("OTP sent successful.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("User with provided email doesn't exist");
+        }
+
+    }
+
+    @PostMapping("/reSendOTP")
+    public ResponseEntity<String> reSendOTP(
+            @RequestParam("email") String email
+    ) {
+        try {
+            String message = service.reSendOTP(email);
+            return ResponseEntity.ok(message);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("User with provided email doesn't exist.");
+        }
+
+    }
+
+    @PostMapping("/verifyOTP")
+    public ResponseEntity<String> verifyOTP(
+            @RequestParam("email") String email,
+            @RequestParam("otp") Integer otp
+    ) {
+        try {
+            String status = service.verifyOTP(email, otp);
+            if (Objects.equals(status, "OTP verification successful.")) {
+                return ResponseEntity.ok(status);
+            } else if (Objects.equals(status, "OTP is expired")) {
+                return ResponseEntity.badRequest().body("OTP is expired");
+            } else if (Objects.equals(status, "Invalid OTP")) {
+                return ResponseEntity.badRequest().body("Invalid OTP");
+            } else if (Objects.equals(status, "Email does not exit")) {
+                return ResponseEntity.badRequest().body("Email does not exit");
+            }else{
+                return ResponseEntity.badRequest().body("verification unsuccessful");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
 }
 
