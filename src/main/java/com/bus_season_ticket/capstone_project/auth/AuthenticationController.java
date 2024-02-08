@@ -1,5 +1,6 @@
 package com.bus_season_ticket.capstone_project.auth;
 
+
 import com.bus_season_ticket.capstone_project.User.ApprovalLetter;
 import com.bus_season_ticket.capstone_project.User.ApprovalLetterRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -69,24 +70,6 @@ public class AuthenticationController {
         }
     }
 
-
-    @GetMapping("/checkAlreadyUsers/{email}")
-    public ResponseEntity<String> checkAlreadyUsers(
-            @PathVariable String email){
-        boolean status =service.checkAlreadyUsers(email);
-        try{
-            if(status){
-                return  ResponseEntity.ok("User has already registered");
-            }else{
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-            }
-        }catch (Exception e){
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body("Invalid request");
-        }
-
-    }
-
     @PostMapping("/adult/register" )
     public ResponseEntity<AuthenticationResponse> adultRegister(
             @RequestPart("routeDetails") String routeRequest1,
@@ -116,28 +99,24 @@ public class AuthenticationController {
         }
     }
 
-    @PostMapping("/authenticate")
-    public ResponseEntity<AuthenticationResponse> authenticate(
-            @RequestBody AuthenticationRequest request
-    ){
-                AuthenticationResponse token = service.authenticate(request);
-                if(token != null){
-                    return ResponseEntity.ok(token);
-                }else{
-                    return ResponseEntity.badRequest().body(null);
-                }
-    }
+    @PostMapping("/conductor/register" )
+    public ResponseEntity<AuthenticationResponse> conductorRegister(
+            @RequestBody RegisterRequest request,
+            HttpServletRequest req
+    ) throws JsonProcessingException {
 
-    @PutMapping("/updatePassword/{userEmail}")
-    public ResponseEntity<Boolean> changePassword(@PathVariable String userEmail,@RequestBody RequestPassword requestPassword){
-        boolean status = service.changePassword(userEmail,requestPassword);
 
-        if(status){
-            return ResponseEntity.ok(true);
-        }else{
-            return ResponseEntity.ok(false);
+        try {
+
+            AuthenticationResponse response = service.conductorRegister(request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+
     @PostMapping("/sendOTP")
     public ResponseEntity<String> sendOTP(
             @RequestParam("email") String email
@@ -187,5 +166,55 @@ public class AuthenticationController {
         }
     }
 
+    @GetMapping("/checkAlreadyUsers/{email}")
+    public ResponseEntity<String> checkAlreadyUsers(
+            @PathVariable String email){
+        boolean status =service.checkAlreadyUsers(email);
+        try{
+            if(status){
+                return  ResponseEntity.ok("User has already registered");
+            }else{
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Invalid request");
+        }
+
+    }
+    @PostMapping("/authenticate")
+    public ResponseEntity<AuthenticationResponse> authenticate(
+            @RequestBody AuthenticationRequest request
+    ){
+                AuthenticationResponse token = service.authenticate(request);
+                if(token != null){
+                    return ResponseEntity.ok(token);
+                }else{
+                    return ResponseEntity.badRequest().body(null);
+                }
+    }
+
+    @PostMapping("/conductor/authenticate")
+    public ResponseEntity<AuthenticationResponse> authenticateConductor(
+            @RequestBody AuthenticationRequest request
+    ){
+        AuthenticationResponse token = service.authenticateConductor(request);
+        if(token != null){
+            return ResponseEntity.ok(token);
+        }else{
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    @PutMapping("/updatePassword/{userEmail}")
+    public ResponseEntity<Boolean> changePassword(@PathVariable String userEmail,@RequestBody RequestPassword requestPassword){
+        boolean status = service.changePassword(userEmail,requestPassword);
+
+        if(status){
+            return ResponseEntity.ok(true);
+        }else{
+            return ResponseEntity.ok(false);
+        }
+    }
 }
 
