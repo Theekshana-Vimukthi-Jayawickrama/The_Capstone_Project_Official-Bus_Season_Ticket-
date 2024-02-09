@@ -38,9 +38,41 @@ public class User implements UserDetails {
     private  String email;
     private String password;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 50)
-    private Role role;
+    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<UserRoles> roles = new HashSet<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL,fetch = FetchType.LAZY)
+    private List<UserJourney> journeys = new ArrayList<>();
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinTable(name ="user_userPersonalDetails", joinColumns = {@JoinColumn(name = "fk_user")},
+            inverseJoinColumns = {@JoinColumn(name = "fk_userPersonalDetails")})
+    private PersonalDetails personalDetails;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinTable(name ="user_status", joinColumns = {@JoinColumn(name = "fk_user")},
+            inverseJoinColumns = {@JoinColumn(name = "fk_status")})
+    private UserStatusMaintain userStatusMaintain;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinTable(name ="stu_otp", joinColumns = {@JoinColumn(name = "fk_stu")},
+    inverseJoinColumns = {@JoinColumn(name = "fk_otp")})
+    private OTP otp;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinTable(name ="user_selectDay", joinColumns = {@JoinColumn(name = "fk_user")},
+            inverseJoinColumns = {@JoinColumn(name = "fk_selectDays")})
+    private SelectDays selectDays;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinTable(name ="stu_QR", joinColumns = {@JoinColumn(name = "fk_stu")},
+            inverseJoinColumns = {@JoinColumn(name = "fk_QR")})
+    private QRCode qrCode;
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinTable(name ="stu_bus", joinColumns = {@JoinColumn(name = "fk_stu")},
@@ -89,7 +121,9 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(role.name()));
+        return roles.stream()
+                .map(userRole -> new SimpleGrantedAuthority(userRole.getRole().name()))
+                .collect(Collectors.toList());
     }
 
     @Override

@@ -1,14 +1,15 @@
 package com.bus_season_ticket.capstone_project.auth;
 
+
 import com.bus_season_ticket.capstone_project.JourneyMaker.SelectDays;
 import com.bus_season_ticket.capstone_project.OTPGenerator.OTP;
 import com.bus_season_ticket.capstone_project.OTPGenerator.OTPRepository;
 import com.bus_season_ticket.capstone_project.User.*;
-import com.bus_season_ticket.capstone_project.demo.EmailAlreadyExistsException;
-import com.bus_season_ticket.capstone_project.demo.UserService;
 import com.bus_season_ticket.capstone_project.busRoutes.BusRoute;
 import com.bus_season_ticket.capstone_project.busRoutes.BusRouteRepository;
 import com.bus_season_ticket.capstone_project.config.JwtService;
+import com.bus_season_ticket.capstone_project.demo.EmailAlreadyExistsException;
+import com.bus_season_ticket.capstone_project.demo.UserService;
 import com.bus_season_ticket.capstone_project.util.ImageUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -26,10 +27,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @CrossOrigin
@@ -46,13 +45,13 @@ public class AuthenticationService {
     @Autowired
     private final StudentBirthFilesRepo studentBirthFilesRepo;
     @Autowired
-    private final BusRouteRepository busRouteRepository;
-
-    @Autowired
-    private final ApprovalLetterRepository approvalLetterRepository;
-    @Autowired
     private final OTPRepository otpRepository;
     private final JavaMailSender emailSender;
+    @Autowired
+    private final BusRouteRepository busRouteRepository;
+    @Autowired
+    private final ApprovalLetterRepository approvalLetterRepository;
+    private final RoleRepository roleRepository;
 
     @Transactional
     public AuthenticationResponse register(RegisterRequest request, SchoolRequest stuRequest, GuardianRequest guardianRequest, RouteRequest routeRequest, MultipartFile birthFile, MultipartFile approvalLetter, MultipartFile userPhoto) throws Exception {
@@ -82,22 +81,36 @@ public class AuthenticationService {
         Double charge = routeRequest.getCharge();
         UserBusDetails stuBusDetails = stuBusRoute(route,charge,nearestDeport);
 
-       var user = User.builder()
-               .fullName(request.getFullname())
-                .intName(request.getIntName())
-                .email(email)
-                .userBusDetails(stuBusDetails)
-                .schoolDetails(schoolDetails)
-                .guardianDetails(guardianDetails)
-                .gender(request.getGender())
+        PersonalDetails personalDetails = PersonalDetails.builder()
                 .dob(request.getDob())
                 .telephoneNumber(request.getTelephone())
                 .residence(request.getResidence())
-                .verified(false)
+                .gender(request.getGender())
+                .fullName(request.getFullname())
+                .intName(request.getIntName())
                 .address(request.getAddress())
+                .build();
+
+        UserStatusMaintain userStatusMaintain = UserStatusMaintain.builder()
+                .verified(false)
                 .status("Pending".trim().toLowerCase())
+                .build();
+
+        Set<UserRoles> roles = new HashSet<>();
+        roles.add(
+                roleRepository.findByRole(Role.STUDENT).orElseThrow(() -> new IllegalArgumentException("Role not Found"))
+    );
+
+       var user = User.builder()
+                .email(email)
+               .personalDetails(personalDetails)
+               .userStatusMaintain(userStatusMaintain)
+                .userBusDetails(stuBusDetails)
+                .schoolDetails(schoolDetails)
+                .guardianDetails(guardianDetails)
+                .userName(email.toLowerCase().trim())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.STUDENT)
+                .roles(roles)
                 .build();
 
         //Approval file save
@@ -130,135 +143,6 @@ public class AuthenticationService {
                 .build();
     }
 
-    //Student PDF letter
-    @Transactional
-    public ApprovalLetter stuApprovalLetter(MultipartFile file){
-
-        try {
-            ApprovalLetter pdfDocument = new ApprovalLetter();
-            pdfDocument.setName(file.getOriginalFilename());
-            pdfDocument.setType(file.getContentType());
-            pdfDocument.setData(file.getBytes());
-            return pdfDocument;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    //Student BirthFile
-    @Transactional
-    public StudentBirthFiles stuBirthFile(MultipartFile file){
-
-        try {
-            StudentBirthFiles pdfDocument = new StudentBirthFiles();
-            pdfDocument.setFileBirthName(file.getOriginalFilename());
-            pdfDocument.setFileBirthType(file.getContentType());
-            pdfDocument.setFileBirthData(file.getBytes());
-            return pdfDocument;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-@Transactional
-    public UserPhotos userPhotoUpload (MultipartFile file){
-
-        try {
-            UserPhotos photo = new UserPhotos();
-            photo.setUserPhotoName(file.getOriginalFilename());
-            photo.setPhotoType(file.getContentType());
-            photo.setData(file.getBytes());
-            return photo;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public byte[] downloadImage(Long fileId){
-        Optional<StudentBirthFiles> dbImageData = uploadRepository.findById(fileId);
-        return ImageUtils.decompressImage(dbImageData.get().getFileBirthData());
-    }
-
-    //BusRoute that student will go...
-    public UserBusDetails stuBusRoute(String route, Double charge, String nearestDeport){
-        BusRoute busRoute = busRouteRepository.findByRoute(route);
-        try {
-            if (busRoute != null) {
-                String distance = busRoute.getDistance();
-
-                return UserBusDetails.builder()
-                        .charge(charge)
-                        .distance(distance)
-                        .route(route)
-                        .nearestDeport(nearestDeport)
-                        .build();
-            } else {
-                // Handle case where busRoute is not found for the given route
-                return null;
-            }
-        } catch (Exception e) {
-            // Handle any exceptions that might occur during processing
-            return null;
-        }
-    }
-
-    //Login..
-    public AuthenticationResponse authenticate(AuthenticationRequest request){
-        var user = repository.findByEmail(request.getEmail())
-                .orElseThrow();
-
-        if(Objects.equals(user.getStatus(), "active") && (user.getRole().equals(Role.ADULT) || user.getRole().equals(Role.STUDENT))){
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.getEmail(),
-                            request.getPassword()
-                    )
-            );
-            var jwtToken = JwtService.generateToken(user);
-            return AuthenticationResponse.builder()
-                    .token(jwtToken)
-                    .userId(user.getId())
-                    .role(user.getRole().toString())
-                    .build();
-        }else{
-            return null;
-        }
-    }
-
-    public boolean isEmailUnique(String email) {
-        return repository.findByEmail(email).isEmpty();
-    }
-
-    public boolean checkAlreadyUsers(String email) {
-        Optional<User> user = repository.findByEmail(email);
-        if(user.isPresent()){
-            return true;
-        }else{
-            return false;
-        }
-    }
-
-    public String getName(UUID userId) {
-        Optional<User> user = repository.findById(userId);
-
-        if(user.isPresent()){
-            return  user.get().getIntName();
-        }else{
-            return "No name";
-        }
-
-    }
-    public boolean changePassword(String userEmail, RequestPassword requestPassword) {
-        Optional<User> user = repository.findByEmail(userEmail);
-        if(user.isPresent()&& Objects.equals(user.get().getStatus(), "active".trim().toLowerCase())){
-            user.ifPresent(userUpdate ->{
-                userUpdate.setPassword( passwordEncoder.encode(requestPassword.getPassword()));
-                repository.save(userUpdate);
-            });
-            return true;
-        }else {
-            return false;
-        }
-    }
-
     public AuthenticationResponse adultRegister(RegisterRequest request,RouteDaysSelectionRequest daysSelectionRequest,  RouteRequest routeRequest, MultipartFile userPhoto, MultipartFile NICFrontPhoto,MultipartFile NICBackPhoto) throws Exception {
         String email = request.getEmail();
         // Check if email already exists
@@ -281,21 +165,35 @@ public class AuthenticationService {
         Double charge = routeRequest.getCharge();
         UserBusDetails stuBusDetails = stuBusRoute(route,charge,nearestDeport);
 
-        var user = User.builder()
-                .fullName(request.getFullname())
-                .intName(request.getIntName())
-                .email(email)
-                .selectDays(selectDays)
-                .userBusDetails(stuBusDetails)
-                .gender(request.getGender())
+        PersonalDetails personalDetails = PersonalDetails.builder()
                 .dob(request.getDob())
                 .telephoneNumber(request.getTelephone())
                 .residence(request.getResidence())
-                .verified(false)
+                .gender(request.getGender())
+                .fullName(request.getFullname())
+                .intName(request.getIntName())
                 .address(request.getAddress())
+                .build();
+
+        UserStatusMaintain userStatusMaintain = UserStatusMaintain.builder()
+                .verified(false)
                 .status("Pending".trim().toLowerCase())
+                .build();
+
+        Set<UserRoles> roles = new HashSet<>();
+        roles.add(
+                roleRepository.findByRole(Role.ADULT).orElseThrow(() -> new IllegalArgumentException("Role not Found"))
+        );
+
+        var user = User.builder()
+                .email(email)
+                .personalDetails(personalDetails)
+                .userStatusMaintain(userStatusMaintain)
+                .userBusDetails(stuBusDetails)
+                .selectDays(selectDays)
+                .userName(email.toLowerCase().trim())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.ADULT)
+                .roles(roles)
                 .build();
 
         NICAdultBack userBackNIC = userNICBackPhoto(NICBackPhoto);
@@ -352,18 +250,20 @@ public class AuthenticationService {
     }
 
     //Email works and OTP generate...
-    public void sendOTPEmail(String toEmail, Integer otp) {
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(toEmail);
-            message.setSubject("OTP Verification");
-            message.setText("Your OTP for verification is: " + otp + ". This will expire within TWO minutes.");
-            emailSender.send(message);
-        } catch (MailException e) {
-            // Handle exceptions (e.g., log or perform appropriate actions)
-            e.printStackTrace();
+        public boolean sendOTPEmail(String toEmail, Integer otp) {
+            try {
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setTo(toEmail);
+                message.setSubject("OTP Verification");
+                message.setText("Your OTP for verification is: " + otp + ". This will expire within TWO minutes.");
+                emailSender.send(message);
+                return true; // Email sent successfully
+            } catch (MailException e) {
+                // Handle exceptions (e.g., log or perform appropriate actions)
+                e.printStackTrace();
+                return false; // Email sending failed
+            }
         }
-    }
     public void sendOTP(String email)  {
         Optional<OTP> userOTP = otpRepository.findByEmail(email);
 
