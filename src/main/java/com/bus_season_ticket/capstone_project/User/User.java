@@ -2,6 +2,10 @@ package com.bus_season_ticket.capstone_project.User;
 
 
 import com.bus_season_ticket.capstone_project.JourneyMaker.SelectDays;
+import com.bus_season_ticket.capstone_project.JourneyMaker.UserJourney;
+import com.bus_season_ticket.capstone_project.OTPGenerator.OTP;
+import com.bus_season_ticket.capstone_project.QRcode.QRCode;
+import com.bus_season_ticket.capstone_project.Subscription.UserSubscription;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,6 +16,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Data
 @Builder
@@ -24,18 +29,12 @@ public class User implements UserDetails {
     @Id
     @GeneratedValue(generator = "UUID")
     private UUID id;
-    private String fullName;
-    private String intName;
-    private String dob;
-    private String address;
-    private String gender;
-    private Boolean verified;
-    private String telephoneNumber;
-    private String residence;
-    private String status;
+
 
     @Column(unique = true)
     private  String email;
+    @Column(unique = true)
+    private String userName;
     private String password;
 
     @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
@@ -80,9 +79,9 @@ public class User implements UserDetails {
     private UserBusDetails userBusDetails;
 
     @OneToOne(cascade = CascadeType.ALL)
-    @JoinTable(name ="user_selectDay", joinColumns = {@JoinColumn(name = "fk_user")},
-            inverseJoinColumns = {@JoinColumn(name = "fk_selectDays")})
-    private SelectDays selectDays;
+    @JoinTable(name ="stu_subscription", joinColumns = {@JoinColumn(name = "fk_stu")},
+            inverseJoinColumns = {@JoinColumn(name = "fk_subscription")})
+    private UserSubscription studentSubscription;
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "fk_school_id")
@@ -133,7 +132,7 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-        return email;
+        return userName;
     }
 
     @Override
