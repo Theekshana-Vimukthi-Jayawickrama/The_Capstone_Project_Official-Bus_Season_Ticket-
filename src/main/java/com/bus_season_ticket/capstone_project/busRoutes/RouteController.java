@@ -4,6 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
+
 @RestController
 @CrossOrigin
 @RequestMapping("/api/v1/route")
@@ -22,12 +25,26 @@ public class RouteController {
         }
     }
 
-    @GetMapping("/getAdultCharge/{route}")
-    public ResponseEntity<Double> getAdultCharge(@PathVariable String route){
-        try{
-            Double charge = busService.calculateChargeAdult(route);
-            return  ResponseEntity.ok(charge);
+    @PostMapping("/getAdultCharge/{route}")
+    public ResponseEntity<Double> getAdultCharge(
+            @PathVariable String route,
+            @RequestBody Map<String, Boolean> selectedDays
+    ) {
+        try {
+            Double charge = busService.calculateChargeAdult(route, selectedDays);
+            return ResponseEntity.ok(charge);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/routeList")
+    public ResponseEntity<List<String>> getList() {
+        try {
+            List<String> allBusRoutes = busService.getRoute();
+            return ResponseEntity.ok(allBusRoutes);
         }catch (Exception e){
+            e.printStackTrace();
             return ResponseEntity.notFound().build();
         }
     }

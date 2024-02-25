@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 public class RouteResponse {
     private String route;
     private String distance;
-    private Double charge;
+    private String charge;
     private String routeNo;
+    private String purchaseMonth;
 }
