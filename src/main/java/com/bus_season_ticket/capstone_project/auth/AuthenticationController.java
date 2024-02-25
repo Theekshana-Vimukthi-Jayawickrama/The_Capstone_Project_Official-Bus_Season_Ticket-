@@ -1,8 +1,11 @@
 package com.bus_season_ticket.capstone_project.auth;
 
 
+import com.bus_season_ticket.capstone_project.Conductor.ConductorService;
 import com.bus_season_ticket.capstone_project.User.ApprovalLetter;
 import com.bus_season_ticket.capstone_project.User.ApprovalLetterRepository;
+import com.bus_season_ticket.capstone_project.User.User;
+import com.bus_season_ticket.capstone_project.User.UserRepo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Objects;
+import java.util.Optional;
 
 @RestController
 @CrossOrigin
@@ -24,6 +28,10 @@ public class AuthenticationController {
     private final AuthenticationService service;
     private final ObjectMapper mapper;
     private  final  ObjectMapper mapperAdult;
+    @Autowired
+    private  final UserRepo userRepo;
+    @Autowired
+    private final ConductorService conductorService;
     @Autowired
     private ApprovalLetterRepository pdfDocumentRepository;
 
@@ -205,6 +213,17 @@ public class AuthenticationController {
             return ResponseEntity.badRequest().body(null);
         }
     }
+    @PostMapping("/admin/authenticate")
+    public ResponseEntity<AuthenticationResponse> authenticateAdmin(
+            @RequestBody AuthenticationRequest request
+    ){
+        AuthenticationResponse token = service.authenticateAdmin(request);
+        if(token != null){
+            return ResponseEntity.ok(token);
+        }else{
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
 
     @PutMapping("/updatePassword/{userEmail}")
     public ResponseEntity<Boolean> changePassword(@PathVariable String userEmail,@RequestBody RequestPassword requestPassword){
@@ -214,6 +233,35 @@ public class AuthenticationController {
             return ResponseEntity.ok(true);
         }else{
             return ResponseEntity.ok(false);
+        }
+    }
+
+    @PutMapping("/updatePassword/conductor/{userName}")
+    public ResponseEntity<Boolean> changeConductorPassword(@PathVariable String userName,@RequestBody RequestPassword requestPassword){
+        boolean status = service.changeConductorPassword(userName,requestPassword);
+
+        if(status){
+            return ResponseEntity.ok(true);
+        }else{
+            return ResponseEntity.ok(false);
+        }
+    }
+    @GetMapping("sendOTP/{userName}")
+    public ResponseEntity<String> sendConductorOTP(@PathVariable String userName){
+
+        try{
+            Boolean status = conductorService.sendOTP(userName);
+
+            if(status){
+                Optional<User> user = userRepo.findByUserName(userName);
+                String email = user.get().getEmail().toString().toLowerCase();
+                System.out.println(email);
+                return ResponseEntity.ok(email);
+            }else{
+                return (ResponseEntity<String>) ResponseEntity.status(HttpStatus.NOT_FOUND);
+            }
+        }catch (Exception e){
+            return (ResponseEntity<String>) ResponseEntity.status(HttpStatus.BAD_REQUEST);
         }
     }
 }

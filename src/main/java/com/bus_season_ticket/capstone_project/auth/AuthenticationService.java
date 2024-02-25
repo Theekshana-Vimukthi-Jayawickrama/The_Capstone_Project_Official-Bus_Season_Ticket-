@@ -249,6 +249,78 @@ public class AuthenticationService {
         }
     }
 
+    //Student PDF letter
+    @Transactional
+    public ApprovalLetter stuApprovalLetter(MultipartFile file){
+
+        try {
+            ApprovalLetter pdfDocument = new ApprovalLetter();
+            pdfDocument.setName(file.getOriginalFilename());
+            pdfDocument.setType(file.getContentType());
+            pdfDocument.setData(file.getBytes());
+            return pdfDocument;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    //Student BirthFile
+    @Transactional
+    public StudentBirthFiles stuBirthFile(MultipartFile file){
+
+        try {
+            StudentBirthFiles pdfDocument = new StudentBirthFiles();
+            pdfDocument.setFileBirthName(file.getOriginalFilename());
+            pdfDocument.setFileBirthType(file.getContentType());
+            pdfDocument.setFileBirthData(file.getBytes());
+            return pdfDocument;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+@Transactional
+    public UserPhotos userPhotoUpload (MultipartFile file){
+
+        try {
+            UserPhotos photo = new UserPhotos();
+            photo.setUserPhotoName(file.getOriginalFilename());
+            photo.setPhotoType(file.getContentType());
+            photo.setData(file.getBytes());
+            return photo;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public byte[] downloadImage(Long fileId){
+        Optional<StudentBirthFiles> dbImageData = uploadRepository.findById(fileId);
+        return ImageUtils.decompressImage(dbImageData.get().getFileBirthData());
+    }
+
+    //BusRoute that student will go...
+    public UserBusDetails stuBusRoute(String route, Double charge, String nearestDeport){
+        BusRoute busRoute = busRouteRepository.findByRoute(route);
+        try {
+            if (busRoute != null) {
+                String distance = busRoute.getDistance();
+
+                return UserBusDetails.builder()
+                        .charge(charge)
+                        .distance(distance)
+                        .route(route)
+                        .nearestDeport(nearestDeport)
+                        .build();
+            } else {
+                // Handle case where busRoute is not found for the given route
+                return null;
+            }
+        } catch (Exception e) {
+            // Handle any exceptions that might occur during processing
+            return null;
+        }
+    }
+
+
     //Email works and OTP generate...
         public boolean sendOTPEmail(String toEmail, Integer otp) {
             try {
@@ -337,22 +409,201 @@ public class AuthenticationService {
 
         if(userOTP.isPresent()){
 
-            if (userOTP.get().getOtpCode() != null && userOTP.get().getOtpCode().equals(otp)) {
-                LocalDateTime now = LocalDateTime.now();
-                LocalDateTime expiryTime = userOTP.get().getOtpExpiryTime();
+        if (userOTP.get().getOtpCode() != null && userOTP.get().getOtpCode().equals(otp)) {
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime expiryTime = userOTP.get().getOtpExpiryTime();
 
-                // Check if OTP has expired
-                if (now.isBefore(expiryTime)) {
-                    // OTP is valid and not expired
-                    return "OTP verification successful.";
-                } else {
-                    // OTP is expired
-                    return "OTP is expired";
-                }
-            }else{return "Invalid OTP";}
+            // Check if OTP has expired
+            if (now.isBefore(expiryTime)) {
+                // OTP is valid and not expired
+                return "OTP verification successful.";
+            } else {
+                // OTP is expired
+                return "OTP is expired";
+            }
+        }else{return "Invalid OTP";}
         }
         else{return "Email does not exit.";}
     }
 
+    //Login..
+    public AuthenticationResponse authenticate(AuthenticationRequest request){
+        var user = repository.findByUserName(request.getEmail())
+                .orElseThrow();
 
+        List<String> userRoles = user.getRoles().stream()
+                .map(role -> role.getRole().toString())
+                .collect(Collectors.toList());
+
+        if (Objects.equals(user.getUserStatusMaintain().getStatus(), "active".trim().toLowerCase()) &&
+                (userRoles.contains(Role.ADULT.toString()) || userRoles.contains(Role.STUDENT.toString()))) {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+
+            var jwtToken = JwtService.generateToken(user);
+            return AuthenticationResponse.builder()
+                    .token(jwtToken)
+                    .userId(user.getId())
+                    .role(userRoles)
+                    .build();
+        }else{
+            return null;
+        }
+    }
+
+    public boolean isEmailUnique(String email) {
+        return repository.findByEmail(email).isEmpty();
+    }
+
+    public boolean checkAlreadyUsers(String email) {
+        Optional<User> user = repository.findByEmail(email);
+        if(user.isPresent()){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public String getName(UUID userId) {
+        Optional<User> user = repository.findById(userId);
+
+        if(user.isPresent()){
+            return  user.get().getPersonalDetails().getIntName();
+        }else{
+            return "No name";
+        }
+
+    }
+    public boolean changePassword(String userEmail, RequestPassword requestPassword) {
+        Optional<User> user = repository.findByUserName(userEmail);
+        if(user.isPresent()&& Objects.equals(user.get().getUserStatusMaintain().getStatus(), "active".trim().toLowerCase())){
+            user.ifPresent(userUpdate ->{
+                userUpdate.setPassword( passwordEncoder.encode(requestPassword.getPassword()));
+                repository.save(userUpdate);
+            });
+            return true;
+        }else {
+            return false;
+        }
+    }
+
+    public AuthenticationResponse conductorRegister(RegisterRequest request) {
+        PersonalDetails personalDetails = PersonalDetails.builder()
+                .dob(request.getDob())
+                .telephoneNumber(request.getTelephone())
+                .residence(request.getResidence())
+                .gender(request.getGender())
+                .fullName(request.getFullname())
+                .intName(request.getIntName())
+                .address(request.getAddress())
+                .build();
+
+
+        Set<UserRoles> roles = new HashSet<>();
+        roles.add(roleRepository.findByRole(Role.CONDUCTOR).orElseThrow(() -> new IllegalArgumentException("Role not Found")));
+
+        var user = User.builder()
+                .email(request.getEmail())
+                .personalDetails(personalDetails)
+                .userName(request.getUserName())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .roles(roles)
+                .build();
+        repository.save(user);
+        var jwtToken = JwtService.generateToken(user);
+        return AuthenticationResponse.builder()
+                .token(jwtToken)
+                .userId(user.getId())
+                .build();
+    }
+
+    public AuthenticationResponse authenticateConductor(AuthenticationRequest request){
+        var user = repository.findByUserName(request.getEmail())
+                .orElseThrow();
+
+        List<String> userRoles = user.getRoles().stream()
+                .map(role -> role.getRole().toString())
+                .collect(Collectors.toList());
+        System.out.println(userRoles);
+
+        if ((userRoles.contains(Role.CONDUCTOR.toString()))) {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+
+            var jwtToken = JwtService.generateToken(user);
+            return AuthenticationResponse.builder()
+                    .token(jwtToken)
+                    .userId(user.getId())
+                    .role(userRoles)
+                    .build();
+        }else{
+            return null;
+        }
+    }
+
+    public AuthenticationResponse authenticateAdmin(AuthenticationRequest request){
+        var user = repository.findByUserName(request.getEmail())
+                .orElseThrow();
+
+        List<String> userRoles = user.getRoles().stream()
+                .map(role -> role.getRole().toString())
+                .collect(Collectors.toList());
+        System.out.println(userRoles);
+
+        if ((userRoles.contains(Role.ADMIN.toString()))) {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+
+            var jwtToken = JwtService.generateToken(user);
+            return AuthenticationResponse.builder()
+                    .token(jwtToken)
+                    .userId(user.getId())
+                    .role(userRoles)
+                    .build();
+        }else{
+            return null;
+        }
+    }
+
+    public boolean updateUserRoute(UUID userId, RouteRequest routeResponse) {
+        Optional<User> user = repository.findById(userId);
+        if(user.isPresent()){
+            BusRoute busRoute = busRouteRepository.findByRoute(routeResponse.getRoute());
+
+            user.get().getUserBusDetails().setRoute(routeResponse.getRoute());
+            user.get().getUserBusDetails().setCharge(routeResponse.getCharge());
+            user.get().getUserBusDetails().setDistance(busRoute.getDistance());
+            user.get().getUserBusDetails().setNearestDeport(routeResponse.getNearestDeport());
+
+            repository.save(user.get());
+            return true;
+        }else{
+            return false;
+        }
+
+    }
+    public boolean changeConductorPassword(String userName, RequestPassword requestPassword) {
+        Optional<User> user = repository.findByUserName(userName);
+        if(user.isPresent()){
+            user.ifPresent(userUpdate ->{
+                userUpdate.setPassword( passwordEncoder.encode(requestPassword.getPassword()));
+                repository.save(userUpdate);
+            });
+            return true;
+        }else {
+            return false;
+        }
+    }
 }

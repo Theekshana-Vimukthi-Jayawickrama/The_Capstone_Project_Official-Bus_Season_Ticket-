@@ -24,7 +24,7 @@ public class AdminService {
     private final DeleteUserRepository deleteUserRepository;
     private final StudentBirthFilesRepo studentBirthFilesRepo;
     private final DeleteDistrictRepository deleteDistrictRepository;
-
+    private final RoleRepository roleRepository;
 
     public boolean saveDistrict(DistrictRequest districtSch) {
 
@@ -175,28 +175,46 @@ public class AdminService {
 
 
 
-    public boolean removeUser(UUID userId, UUID adminId, UserDeleteRequest userDeleteRequest) {
-        Optional<User> user = userRepo.findById(userId);
-        Optional<User> adminUser = userRepo.findById(adminId);
-        if(adminUser.isPresent()){
-            if(user.isPresent()){
-                DeleteUser deleteUser = DeleteUser.builder()
-                        .userId(user.get().getId())
-                        .userName(user.get().getUsername())
-                        .fullName(user.get().getPersonalDetails().getFullName())
-                        .reason(userDeleteRequest.getReason())
-                        .adminId(adminId)
-                        .build();
-                deleteUserRepository.save(deleteUser);
-                userRepo.deleteById(userId);
-                return true;
-            }else{
-                return false;
-            }
-        }else{
-            return false;
-        }
-    }
+//    public boolean removeUser(UUID userId, UUID adminId, UserDeleteRequest userDeleteRequest) {
+//        Optional<User> user = userRepo.findById(userId);
+//        Optional<User> adminUser = userRepo.findById(adminId);
+//        if(adminUser.isPresent()){
+//            if(user.isPresent()){
+//                List<String> userRoles = user.get().getRoles().stream()
+//                    .map(role -> role.getRole().toString())
+//                    .collect(Collectors.toList());
+//                if(userRoles.contains(userDeleteRequest.getRole())){
+//                    DeleteUser deleteUser = DeleteUser.builder()
+//                            .userId(user.get().getId())
+//                            .userName(user.get().getUsername())
+//                            .fullName(user.get().getPersonalDetails().getFullName())
+//                            .reason(userDeleteRequest.getReason())
+//                            .adminId(adminId)
+//                            .role(userDeleteRequest.getRole())
+//                            .build();
+//
+//                    UserRoles roleToRemove = new UserRoles();
+////                    Optional<UserRoles> role = roleRepository.findByRoleName(userDeleteRequest.getRole());
+//                    roleToRemove.setId(role.get().getId());
+//                    user.get().getRoles().remove(roleToRemove);
+//
+//                    // Update the user (this will update the user_roles table)
+//                    userRepo.save(user.get());
+//                    deleteUserRepository.save(deleteUser);
+//                    userRepo.deleteById(userId);
+//                    return true;
+//                }else{
+//                    return false;
+//                }
+//
+//
+//            }else{
+//                return false;
+//            }
+//        }else{
+//            return false;
+//        }
+//    }
 
     public PendingStudentDetailsResponse getStudentAllDetails(UUID userId) {
         Optional<User> user = userRepo.findById(userId);
