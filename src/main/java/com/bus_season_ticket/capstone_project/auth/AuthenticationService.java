@@ -5,6 +5,8 @@ import com.bus_season_ticket.capstone_project.JourneyMaker.SelectDays;
 import com.bus_season_ticket.capstone_project.OTPGenerator.OTP;
 import com.bus_season_ticket.capstone_project.OTPGenerator.OTPRepository;
 import com.bus_season_ticket.capstone_project.User.*;
+import com.bus_season_ticket.capstone_project.adminUser.DistrictList;
+import com.bus_season_ticket.capstone_project.adminUser.DistrictListRepository;
 import com.bus_season_ticket.capstone_project.busRoutes.BusRoute;
 import com.bus_season_ticket.capstone_project.busRoutes.BusRouteRepository;
 import com.bus_season_ticket.capstone_project.config.JwtService;
@@ -36,7 +38,7 @@ import java.util.stream.Collectors;
 public class AuthenticationService {
     @Autowired
     private final UserRepo repository;
-
+    private final DistrictListRepository districtListRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     @Autowired
@@ -322,18 +324,16 @@ public class AuthenticationService {
 
 
     //Email works and OTP generate...
-        public boolean sendOTPEmail(String toEmail, Integer otp) {
+        public void sendOTPEmail(String toEmail, Integer otp) {
             try {
                 SimpleMailMessage message = new SimpleMailMessage();
                 message.setTo(toEmail);
-                message.setSubject("OTP Verification");
+                message.setSubject("OTP Verification from Bus Season Ticket");
                 message.setText("Your OTP for verification is: " + otp + ". This will expire within TWO minutes.");
                 emailSender.send(message);
-                return true; // Email sent successfully
             } catch (MailException e) {
                 // Handle exceptions (e.g., log or perform appropriate actions)
                 e.printStackTrace();
-                return false; // Email sending failed
             }
         }
     public void sendOTP(String email)  {
@@ -352,7 +352,7 @@ public class AuthenticationService {
             // Generate a new OTP
             Integer OTP = generateOTP();
             // Save the new OTP for the user
-            saveOTP(email, OTP);
+            saveOTP(email.toLowerCase().trim(), OTP);
             // Send the new OTP to the user's email
             sendOTPEmail(email, OTP);
         }
@@ -362,7 +362,7 @@ public class AuthenticationService {
     public String reSendOTP (String email){
         Integer newOTP = generateOTP();
 
-        Optional<OTP> userOTP = otpRepository.findByEmail(email);
+        Optional<OTP> userOTP = otpRepository.findByEmail(email.toLowerCase().trim());
         if(userOTP.isPresent()){
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime expiryTime = now.plusMinutes(2);
@@ -370,7 +370,7 @@ public class AuthenticationService {
             otp.setOtpCode(newOTP);
             otp.setOtpExpiryTime(expiryTime);
             otpRepository.save(otp);
-            sendOTPEmail(email, newOTP);
+            sendOTPEmail(email.toLowerCase().trim(), newOTP);
             return "new OTP sent.";
         }else{
             return null;
@@ -405,7 +405,7 @@ public class AuthenticationService {
     }
 
     public String verifyOTP(String email, Integer otp) {
-        Optional<OTP> userOTP= otpRepository.findByEmail(email);
+        Optional<OTP> userOTP= otpRepository.findByEmail(email.trim().toLowerCase());
 
         if(userOTP.isPresent()){
 
@@ -468,6 +468,20 @@ public class AuthenticationService {
         }
     }
 
+    public List<String> getAllSchoolDistrict() {
+
+        List<DistrictList> schoolDistrict = districtListRepository.findAll();
+        if (schoolDistrict.isEmpty()) {
+            return null;
+        } else {
+            List<String> districts = new ArrayList<>();
+
+            for (int i = 0; i < schoolDistrict.size(); i++) {
+                districts.add(schoolDistrict.get(i).getDistrictName().toUpperCase());
+            }
+            return districts;
+        }
+    }
     public String getName(UUID userId) {
         Optional<User> user = repository.findById(userId);
 
@@ -491,7 +505,7 @@ public class AuthenticationService {
         }
     }
 
-    public AuthenticationResponse conductorRegister(RegisterRequest request) {
+    public AuthenticationResponse conductorRegister(RegisterRequest request,MultipartFile userPhoto) throws Exception {
         PersonalDetails personalDetails = PersonalDetails.builder()
                 .dob(request.getDob())
                 .telephoneNumber(request.getTelephone())
@@ -513,6 +527,12 @@ public class AuthenticationService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .roles(roles)
                 .build();
+        UserPhotos userPhoto1 = userPhotoUpload(userPhoto);
+        if(userPhoto1==null){
+            throw new Exception("File could not be saved");
+        }else{
+            user.setUserPhoto(userPhoto1);
+        }
         repository.save(user);
         var jwtToken = JwtService.generateToken(user);
         return AuthenticationResponse.builder()
