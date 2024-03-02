@@ -16,8 +16,44 @@ public class BusRouteAdminController {
     @PostMapping()
     public ResponseEntity<String> register(@RequestBody BusRouteRequest busRoute) {
         try {
-            busService.setRoute(busRoute);
-            return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+            if(busService.setRoute(busRoute)){
+                return ResponseEntity.status(HttpStatus.OK).build();
+            }else{
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PutMapping("/update/{id}")
+    public ResponseEntity<String> update(@RequestBody BusRouteRequest busRoute, @PathVariable int id) {
+        try {
+            boolean status = busService.updateRoute(busRoute,id);
+                    if(status){
+                        return ResponseEntity.status(HttpStatus.OK).build();
+                    }else{
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+                    }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<String> delete(@RequestBody DeleteBusRouteRequest busRoute, @PathVariable int id) {
+        try {
+            boolean status = busService.deleteRoute(busRoute,id);
+            if(status){
+                return ResponseEntity.status(HttpStatus.OK).build();
+            }else{
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -25,9 +61,9 @@ public class BusRouteAdminController {
     }
 
     @GetMapping("/routeList")
-    public ResponseEntity<List<String>> getList() {
+    public ResponseEntity<List<BusRouteResponse>> getList() {
         try {
-            List<String> allBusRoutes = busService.getRoute();
+            List<BusRouteResponse> allBusRoutes = busService.getRouteByAdmin();
             return ResponseEntity.ok(allBusRoutes);
         }catch (Exception e){
             e.printStackTrace();

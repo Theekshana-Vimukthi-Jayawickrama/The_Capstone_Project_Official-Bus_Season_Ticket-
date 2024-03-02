@@ -25,6 +25,8 @@ public class BusRoute {
     private String routeNo;
     private String distance;
     private Double perDayCharge;
+    private String routeDistance;
+    private String routeSource;
 
 
 }
