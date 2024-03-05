@@ -14,12 +14,12 @@ import java.util.List;
 public class BusRouteAdminController {
     private final BusRouteService busService;
     @PostMapping()
-    public ResponseEntity<String> register(@RequestBody BusRouteRequest busRoute) {
+    public ResponseEntity<?> register(@RequestBody BusRouteRequest busRoute) {
         try {
             if(busService.setRoute(busRoute)){
                 return ResponseEntity.status(HttpStatus.OK).build();
             }else{
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
             }
 
         } catch (Exception e) {
@@ -29,13 +29,13 @@ public class BusRouteAdminController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<String> update(@RequestBody BusRouteRequest busRoute, @PathVariable int id) {
+    public ResponseEntity<?> updateRoute(@RequestBody BusRouteRequest busRoute, @PathVariable int id) {
         try {
             boolean status = busService.updateRoute(busRoute,id);
                     if(status){
                         return ResponseEntity.status(HttpStatus.OK).build();
                     }else{
-                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
                     }
 
         } catch (Exception e) {
@@ -60,10 +60,32 @@ public class BusRouteAdminController {
         }
     }
 
+    @GetMapping("/routeDeleteList")
+    public ResponseEntity<List<DeleteRouteResponse>> getDeleteList() {
+        try {
+            List<DeleteRouteResponse> allBusRoutes = busService.getDeleteRouteList();
+            return ResponseEntity.ok(allBusRoutes);
+        }catch (Exception e){
+            e.printStackTrace();
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @GetMapping("/routeList")
     public ResponseEntity<List<BusRouteResponse>> getList() {
         try {
             List<BusRouteResponse> allBusRoutes = busService.getRouteByAdmin();
+            return ResponseEntity.ok(allBusRoutes);
+        }catch (Exception e){
+            e.printStackTrace();
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/singleRoute/{id}")
+    public ResponseEntity<BusRouteResponse> getOneRoute(@PathVariable int id) {
+        try {
+            BusRouteResponse allBusRoutes = busService.getOneRouteByAdmin(id);
             return ResponseEntity.ok(allBusRoutes);
         }catch (Exception e){
             e.printStackTrace();
