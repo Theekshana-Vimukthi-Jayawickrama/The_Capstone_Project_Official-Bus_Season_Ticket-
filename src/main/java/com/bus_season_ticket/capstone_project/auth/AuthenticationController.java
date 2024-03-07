@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -33,7 +34,7 @@ public class AuthenticationController {
     @Autowired
     private final ConductorService conductorService;
     @Autowired
-    private ApprovalLetterRepository pdfDocumentRepository;
+    private final ApprovalLetterRepository pdfDocumentRepository;
 
 
     @GetMapping("/{id}")
@@ -107,22 +108,7 @@ public class AuthenticationController {
         }
     }
 
-    @PostMapping("/conductor/register" )
-    public ResponseEntity<AuthenticationResponse> conductorRegister(
-            @RequestBody RegisterRequest request,
-            HttpServletRequest req
-    ) throws JsonProcessingException {
 
-
-        try {
-
-            AuthenticationResponse response = service.conductorRegister(request);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
 
 
     @PostMapping("/sendOTP")
@@ -130,7 +116,7 @@ public class AuthenticationController {
             @RequestParam("email") String email
     ) {
         try {
-            service.sendOTP(email);
+            service.sendOTP(email.toLowerCase().trim());
             return ResponseEntity.ok("OTP sent successful.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("User with provided email doesn't exist");
@@ -174,6 +160,28 @@ public class AuthenticationController {
         }
     }
 
+    @PostMapping("/conductor/verifyOTP")
+    public ResponseEntity<String> conductorVerifyOTP(
+            @RequestPart("email") String email,
+            @RequestPart("otp") Integer otp
+    ) {
+        try {
+            String status = service.verifyOTP(email, otp);
+            if (Objects.equals(status, "OTP verification successful.")) {
+                return ResponseEntity.ok(status);
+            } else if (Objects.equals(status, "OTP is expired")) {
+                return ResponseEntity.badRequest().body("OTP is expired");
+            } else if (Objects.equals(status, "Invalid OTP")) {
+                return ResponseEntity.badRequest().body("Invalid OTP");
+            } else if (Objects.equals(status, "Email does not exit")) {
+                return ResponseEntity.badRequest().body("Email does not exit");
+            }else{
+                return ResponseEntity.badRequest().body("verification unsuccessful");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
     @GetMapping("/checkAlreadyUsers/{email}")
     public ResponseEntity<String> checkAlreadyUsers(
             @PathVariable String email){
@@ -189,6 +197,22 @@ public class AuthenticationController {
             return ResponseEntity.badRequest().body("Invalid request");
         }
 
+    }
+
+    @GetMapping("/getAllSchDistrict")
+    public ResponseEntity<List<String>> getAllSchoolDistricts (){
+
+        try {
+            List<String> districts = service.getAllSchoolDistrict();
+
+            if(districts == null){
+                return ResponseEntity.notFound().build();
+            }else{
+                return ResponseEntity.ok(districts);
+            }
+        }catch (Exception e){
+            return ResponseEntity.badRequest().build();
+        }
     }
     @PostMapping("/authenticate")
     public ResponseEntity<AuthenticationResponse> authenticate(

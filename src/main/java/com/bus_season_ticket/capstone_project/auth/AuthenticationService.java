@@ -506,6 +506,8 @@ public class AuthenticationService {
     }
 
     public AuthenticationResponse conductorRegister(RegisterRequest request,MultipartFile userPhoto) throws Exception {
+
+
         PersonalDetails personalDetails = PersonalDetails.builder()
                 .dob(request.getDob())
                 .telephoneNumber(request.getTelephone())
@@ -515,8 +517,6 @@ public class AuthenticationService {
                 .intName(request.getIntName())
                 .address(request.getAddress())
                 .build();
-
-
         Set<UserRoles> roles = new HashSet<>();
         roles.add(roleRepository.findByRole(Role.CONDUCTOR).orElseThrow(() -> new IllegalArgumentException("Role not Found")));
 
@@ -524,6 +524,47 @@ public class AuthenticationService {
                 .email(request.getEmail())
                 .personalDetails(personalDetails)
                 .userName(request.getUserName())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .roles(roles)
+                .build();
+        UserPhotos userPhoto1 = userPhotoUpload(userPhoto);
+        if(userPhoto1==null){
+            throw new Exception("File could not be saved");
+        }else{
+            user.setUserPhoto(userPhoto1);
+        }
+        repository.save(user);
+        var jwtToken = JwtService.generateToken(user);
+        return AuthenticationResponse.builder()
+                .token(jwtToken)
+                .userId(user.getId())
+                .build();
+    }
+
+    public AuthenticationResponse adminRegister(RegisterRequest request,MultipartFile userPhoto) throws Exception {
+
+
+        PersonalDetails personalDetails = PersonalDetails.builder()
+                .dob(request.getDob())
+                .telephoneNumber(request.getTelephone())
+                .residence(request.getResidence())
+                .gender(request.getGender())
+                .fullName(request.getFullname())
+                .intName(request.getIntName())
+                .address(request.getAddress())
+                .build();
+        Set<UserRoles> roles = new HashSet<>();
+        roles.add(roleRepository.findByRole(Role.ADMIN).orElseThrow(() -> new IllegalArgumentException("Role not Found")));
+
+        SuperAdminStatusMaintain superAdminMaintain = SuperAdminStatusMaintain.builder()
+                .status(false)
+                .build();
+
+        var user = User.builder()
+                .email(request.getEmail())
+                .personalDetails(personalDetails)
+                .userName(request.getEmail())
+                .superAdminMaintain(superAdminMaintain)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .roles(roles)
                 .build();
