@@ -205,6 +205,22 @@ public class AdminService {
                     // Update the user (this will update the user_roles table)
                     deleteUserRepository.save(deleteUser);
                     userRepo.deleteById(userId);
+                    SimpleMailMessage message = new SimpleMailMessage();
+                    message.setTo(user.get().getEmail());
+                    message.setSubject("Your account has been removed from E-Tiz !");
+                    message.setText("Dear "+user.get().getPersonalDetails().getFullName()+",\n" +
+                            "\n" +
+                            " We understand that this news may be disappointing, and we sincerely apologize for any inconvenience caused.\n" +
+                            "\n" +
+                            "Our team has carefully reviewed your behavior against our guidelines, and unfortunately, it does not meet the necessary criteria for acceptance. So, Our team has been removed account that email is " + user.get().getEmail() + "."
++
+                            "\n" +
+                            "If you would like further details on why your are was not accepted or if you have any questions, please feel free to reach out to our support team. \n" +
+                            "\n" +
+                            "Thank you for your understanding and cooperation. " +
+                            "Best regards,\n" +
+                            "[ Company/E-TIZ]");
+                    emailSender.send(message);
                     return true;
                 }else{
                     return false;
