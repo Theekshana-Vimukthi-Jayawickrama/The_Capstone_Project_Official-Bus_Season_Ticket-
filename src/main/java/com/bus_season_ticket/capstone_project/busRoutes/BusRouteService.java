@@ -11,6 +11,7 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 @CrossOrigin
@@ -18,15 +19,38 @@ import java.util.Map;
 public class BusRouteService {
 
     private final BusRouteRepository busRouteRepository;
+    private final DeleteRouteRepository deleteRouteRepository;
+    public boolean setRoute(BusRouteRequest request){
+        if(!request.getRouteSource().trim().equalsIgnoreCase(request.getRouteDistance().trim())){
+            String route = request.getRouteSource().trim().toUpperCase() +" - "+ request.getRouteDistance().trim().toUpperCase();
+            String route1 = request.getRouteDistance().trim()+" - "+ request.getRouteSource().trim();
+            List<BusRoute> busRoutes = busRouteRepository.findAll();
+            boolean status = true;
 
-    public void setRoute(BusRouteRequest request){
-        BusRoute busRoute = BusRoute.builder()
-                .route(request.getRoute())
-                .routeNo(request.getRouteNo())
-                .distance(request.getDistance())
-                .perDayCharge(request.getPerDayCharge())
-                .build();
-        busRouteRepository.save(busRoute);
+            for(int i=0; i < busRoutes.size() ;i++){
+                if(busRoutes.get(i).getRoute().equals(route.trim()) || busRoutes.get(i).getRoute().equals(route1.trim())){
+                    status = false;
+                    break;
+                }
+            }
+            if(status){
+                BusRoute busRoute = BusRoute.builder()
+                        .route(route.trim())
+                        .routeSource(request.getRouteSource())
+                        .routeDistance(request.getRouteDistance())
+                        .routeNo(request.getRouteNo().toUpperCase().trim())
+                        .distance(request.getDistance().toUpperCase().trim())
+                        .perDayCharge(request.getPerDayCharge())
+                        .build();
+                busRouteRepository.save(busRoute);
+                return true;
+            }
+
+        }else{
+            return false;
+        }
+
+        return false;
     }
 
     public List<String> getRoute(){
@@ -36,6 +60,42 @@ public class BusRouteService {
 
         for(int i=0; i < busRoutes.size() ;i++){
             allBusRoute.add(busRoutes.get(i).getRoute());
+        }
+        return allBusRoute;
+    }
+
+    public List<BusRouteResponse> getRouteByAdmin(){
+        List<BusRoute> busRoutes = busRouteRepository.findAll();
+
+        List<BusRouteResponse> allBusRoute = new ArrayList<>();
+
+        for(int i=0; i < busRoutes.size() ;i++){
+            BusRouteResponse busRouteRequest = BusRouteResponse.builder()
+                    .id(busRoutes.get(i).getId())
+                    .routeSource(busRoutes.get(i).getRouteSource())
+                    .routeDistance(busRoutes.get(i).getRouteDistance())
+                    .distance(busRoutes.get(i).getDistance())
+                    .perDayCharge(busRoutes.get(i).getPerDayCharge())
+                    .routeNo(busRoutes.get(i).getRouteNo())
+                    .build();
+            allBusRoute.add(busRouteRequest);
+        }
+        return allBusRoute;
+    }
+
+    public List<DeleteRouteResponse> getDeleteRouteList(){
+        List<DeleteRoute> busRoutes = deleteRouteRepository.findAll();
+
+        List<DeleteRouteResponse> allBusRoute = new ArrayList<>();
+
+        for (DeleteRoute busRoute : busRoutes) {
+            DeleteRouteResponse busRouteRequest = DeleteRouteResponse.builder()
+                    .adminId(busRoute.getAdminId())
+                    .route(busRoute.getRoute())
+                    .reason(busRoute.getReason())
+                    .date(busRoute.getDate())
+                    .build();
+            allBusRoute.add(busRouteRequest);
         }
         return allBusRoute;
     }
@@ -112,5 +172,74 @@ public class BusRouteService {
             return ((charge *60 / 100)  * totalDayCount);
         }
         return null;
+    }
+
+    public boolean updateRoute(BusRouteRequest request, int id) {
+        BusRoute busRoute1 = busRouteRepository.findById(id);
+
+      if(!request.getRouteSource().trim().equalsIgnoreCase(request.getRouteDistance().trim()) ){
+        String route = request.getRouteSource().trim().toUpperCase() +" - "+ request.getRouteDistance().trim().toUpperCase();
+          String route1 = request.getRouteDistance().trim()+" - "+ request.getRouteSource().trim();
+          List<BusRoute> busRoutes = busRouteRepository.findAll();
+          boolean status = true;
+
+          for(int i=0; i < busRoutes.size() ;i++){
+              if(busRoutes.get(i).getRoute().equals(route.trim()) || busRoutes.get(i).getRoute().equals(route1.trim())){
+                  status = false;
+                  break;
+              }
+          }
+          if(status){
+            busRoute1.setRoute(route.trim());
+            busRoute1.setRouteDistance(request.getRouteDistance() );
+            busRoute1.setDistance(request.getDistance()+" " +"KM");
+            busRoute1.setRouteNo(request.getRouteNo());
+            busRoute1.setRouteSource(request.getRouteSource().toUpperCase().trim());
+            busRoute1.setPerDayCharge(request.getPerDayCharge());
+            busRouteRepository.save(busRoute1);
+            return true;
+          }else{
+              return false;
+          }
+
+      }else{
+          return false;
+      }
+
+    }
+
+    public boolean deleteRoute(DeleteBusRouteRequest busRoute, int id) {
+        BusRoute busRoute1 = busRouteRepository.findById(id);
+        if(busRoute1 != null){
+            DeleteRoute deleteRoute = DeleteRoute.builder()
+                    .adminId(busRoute.getAdminId())
+                    .reason(busRoute.getReason())
+                    .route(busRoute1.getRoute())
+                    .date(LocalDate.now())
+                    .build();
+            deleteRouteRepository.save(deleteRoute);
+            busRouteRepository.delete(busRoute1);
+            return true;
+        }return false;
+    }
+
+    public BusRouteResponse getOneRouteByAdmin(int id) {
+        BusRoute busRoutes = busRouteRepository.findById(id);
+
+        if(busRoutes != null){
+            BusRouteResponse busRouteRequest = BusRouteResponse.builder()
+                    .id(busRoutes.getId())
+                    .routeSource(busRoutes.getRouteSource())
+                    .routeDistance(busRoutes.getRouteDistance())
+                    .distance(busRoutes.getDistance())
+                    .perDayCharge(busRoutes.getPerDayCharge())
+                    .routeNo(busRoutes.getRouteNo())
+                    .build();
+            return busRouteRequest;
+        }
+
+    return null;
+
+
     }
 }
