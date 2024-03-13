@@ -6,12 +6,15 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-public class AllRoles {
+@Table(name = "Roles")
+public class UserRoles {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
@@ -19,6 +22,8 @@ public class AllRoles {
     @Enumerated(EnumType.STRING)
     @Column(length = 50)
     private Role role;
+
+    private UUID adminId;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
