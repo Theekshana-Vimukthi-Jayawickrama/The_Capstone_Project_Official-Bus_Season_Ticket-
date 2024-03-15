@@ -9,7 +9,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class BusRouteRequest {
+public class BusRouteResponse {
+    private int id;
     private String routeDistance;
     private String routeSource;
     private String routeNo;
