@@ -1,4 +1,4 @@
-package com.bus_season_ticket.capstone_project.busRoutes;
+package com.bus_season_ticket.capstone_project.adminUser;
 
 import jakarta.persistence.Entity;
 import lombok.AllArgsConstructor;
@@ -8,14 +8,17 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.UUID;
-
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
 @Builder
-public class DeleteRouteResponse {
-    private UUID adminId;
-    private String route;
+public class DeleteUserDetailsResponse {
+
+    private String userName;
+    private String role;
+    private UUID userId;
+    private String fullName;
     private String reason;
-    private LocalDate date;
+    private UUID adminId;
+    private LocalDate deleteDate;
 }
