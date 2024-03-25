@@ -37,7 +37,7 @@ public class User implements UserDetails {
     private String userName;
     private String password;
 
-    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH})
     @JoinTable(
             name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
@@ -81,7 +81,7 @@ public class User implements UserDetails {
     @OneToOne(cascade = CascadeType.ALL)
     @JoinTable(name ="stu_subscription", joinColumns = {@JoinColumn(name = "fk_stu")},
             inverseJoinColumns = {@JoinColumn(name = "fk_subscription")})
-    private UserSubscription studentSubscription;
+    private UserSubscription userSubscription;
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "fk_school_id")
@@ -101,6 +101,11 @@ public class User implements UserDetails {
     @JoinTable(name ="Adult_NICBackSidePhoto", joinColumns = {@JoinColumn(name = "fk_Adult_Id")},
             inverseJoinColumns = {@JoinColumn(name = "fk_userNICBackPhoto")})
     private NICAdultBack adultBackNIC;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinTable(name ="Admin_Status", joinColumns = {@JoinColumn(name = "fk_Admin_Id")},
+            inverseJoinColumns = {@JoinColumn(name = "fk_Admin_Status_Id")})
+    private SuperAdminStatusMaintain superAdminMaintain;
 
 
     @OneToOne(cascade = CascadeType.ALL)

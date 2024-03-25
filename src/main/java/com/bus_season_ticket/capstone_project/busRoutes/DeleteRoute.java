@@ -1,4 +1,4 @@
-package com.bus_season_ticket.capstone_project.adminUser;
+package com.bus_season_ticket.capstone_project.busRoutes;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -8,21 +8,22 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.boot.autoconfigure.web.WebProperties;
 
 import java.time.LocalDate;
 import java.util.UUID;
 
-@Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Data
 @Entity
 @Builder
-public class DeleteDistrictName {
+public class DeleteRoute {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
-    private String districtName;
-    private String reason;
+    private int id;
     private UUID adminId;
-    private LocalDate deleteDate;
+    private String route;
+    private String reason;
+    private LocalDate date;
 }
