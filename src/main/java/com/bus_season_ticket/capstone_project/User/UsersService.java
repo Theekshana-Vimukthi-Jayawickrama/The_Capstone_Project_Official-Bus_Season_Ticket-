@@ -1,5 +1,6 @@
 package com.bus_season_ticket.capstone_project.User;
 
+
 import com.bus_season_ticket.capstone_project.busRoutes.BusRoute;
 import com.bus_season_ticket.capstone_project.busRoutes.BusRouteRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,13 +32,26 @@ public class UsersService {
         Optional<User> user = userRepo.findById(UUID.fromString(userId));
         BusRoute busRoute = busRouteRepository.findByRoute(user.get().getUserBusDetails().getRoute());
         if(user.isPresent()){
-            RouteResponse routeResponse = RouteResponse.builder()
+            if (user.get().getUserSubscription() != null) {
+                RouteResponse routeResponse = RouteResponse.builder()
+                        .routeNo(busRoute.getRouteNo())
+                        .charge(user.get().getUserBusDetails().getCharge().toString())
+                        .distance(busRoute.getDistance())
+                        .route(user.get().getUserBusDetails().getRoute())
+                        .purchaseMonth(user.get().getUserSubscription().getMonth().isEmpty() ? "Subscription not activated" : user.get().getUserSubscription().getMonth())
+                        .build();
+                return Optional.ofNullable(routeResponse);
+            } else {
+                RouteResponse routeResponse = RouteResponse.builder()
                     .routeNo(busRoute.getRouteNo())
-                    .charge(user.get().getUserBusDetails().getCharge())
+                    .charge(user.get().getUserBusDetails().getCharge().toString())
                     .distance(busRoute.getDistance())
                     .route(user.get().getUserBusDetails().getRoute())
+                    .purchaseMonth("Subscription not activated")
                     .build();
-            return Optional.ofNullable(routeResponse);
+                return Optional.ofNullable(routeResponse);
+            }
+
         }else{
             return null;
         }
