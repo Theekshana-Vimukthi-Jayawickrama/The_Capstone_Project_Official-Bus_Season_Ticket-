@@ -1,10 +1,13 @@
 package com.bus_season_ticket.capstone_project.auth;
 
+
 import com.bus_season_ticket.capstone_project.User.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.UUID;
 
 @Data
 @Builder
@@ -21,5 +24,6 @@ public class RegisterRequest {
     private String telephone;
     private String residence;
     private Role role;
+    private String userName;
 
 }
